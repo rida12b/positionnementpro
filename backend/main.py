@@ -4,11 +4,15 @@ from pydantic import BaseModel
 from typing import List
 import json
 import os
-from openai import OpenAI
 from dotenv import load_dotenv
+import google.generativeai as genai
 
 # Chargement des variables d'environnement
 load_dotenv()
+
+# Configuration de Gemini
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-pro')
 
 app = FastAPI()
 
@@ -21,9 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 # Modèles de données
 class UserResponse(BaseModel):
     question_id: int
@@ -33,52 +34,52 @@ class UserResponse(BaseModel):
 GENERIC_QUESTIONS = {
     1: {
         "id": 1,
-        "text": "Dans quel type d'activité te sens-tu le plus à l'aise ?",
+        "text": "Qu'est-ce qui te passionne le plus dans la vie ?",
         "options": [
-            {"id": "creative", "text": "Les activités créatives et artistiques"},
-            {"id": "technical", "text": "Les activités techniques et logiques"},
-            {"id": "social", "text": "Les activités sociales et relationnelles"},
-            {"id": "practical", "text": "Les activités pratiques et concrètes"}
+            {"id": "creative", "text": "Créer et imaginer de nouvelles choses"},
+            {"id": "social", "text": "Échanger et partager avec les autres"},
+            {"id": "analytical", "text": "Comprendre et analyser le monde"},
+            {"id": "practical", "text": "Construire et réaliser des projets concrets"}
         ]
     },
     2: {
         "id": 2,
-        "text": "Qu'est-ce qui te motive le plus dans un projet ?",
+        "text": "Comment préfères-tu passer ton temps libre ?",
         "options": [
-            {"id": "impact", "text": "Avoir un impact positif sur les autres"},
-            {"id": "challenge", "text": "Relever des défis et progresser"},
-            {"id": "freedom", "text": "Avoir de la liberté et de l'autonomie"},
-            {"id": "create", "text": "Créer et innover"}
+            {"id": "learning", "text": "Apprendre de nouvelles choses"},
+            {"id": "helping", "text": "Aider et conseiller les autres"},
+            {"id": "making", "text": "Fabriquer ou créer quelque chose"},
+            {"id": "exploring", "text": "Explorer et découvrir"}
         ]
     },
     3: {
         "id": 3,
-        "text": "Comment préfères-tu travailler ?",
+        "text": "Qu'est-ce qui te motive naturellement ?",
         "options": [
-            {"id": "team", "text": "En équipe, avec beaucoup d'interactions"},
-            {"id": "solo", "text": "Seul(e), de manière autonome"},
-            {"id": "mix", "text": "Un mélange des deux selon les situations"},
-            {"id": "lead", "text": "En guidant et en dirigeant les autres"}
+            {"id": "impact", "text": "Avoir un impact positif sur les autres"},
+            {"id": "knowledge", "text": "Acquérir de nouvelles connaissances"},
+            {"id": "creation", "text": "Exprimer ma créativité"},
+            {"id": "challenge", "text": "Relever des défis personnels"}
         ]
     },
     4: {
         "id": 4,
-        "text": "Quel environnement te correspond le mieux ?",
+        "text": "Dans quel type d'environnement te sens-tu le plus à l'aise ?",
         "options": [
-            {"id": "dynamic", "text": "Un environnement dynamique et changeant"},
-            {"id": "stable", "text": "Un cadre stable et bien structuré"},
-            {"id": "flexible", "text": "Un environnement flexible et adaptable"},
-            {"id": "outdoor", "text": "Un environnement varié, pas toujours au bureau"}
+            {"id": "calm", "text": "Un environnement calme et organisé"},
+            {"id": "dynamic", "text": "Un environnement dynamique et varié"},
+            {"id": "nature", "text": "Un environnement proche de la nature"},
+            {"id": "creative", "text": "Un environnement créatif et inspirant"}
         ]
     },
     5: {
         "id": 5,
         "text": "Qu'est-ce qui compte le plus pour toi ?",
         "options": [
-            {"id": "growth", "text": "L'apprentissage et le développement personnel"},
-            {"id": "balance", "text": "L'équilibre vie pro/perso"},
-            {"id": "purpose", "text": "Le sens et l'utilité de mon travail"},
-            {"id": "success", "text": "La réussite et la reconnaissance"}
+            {"id": "freedom", "text": "La liberté d'être moi-même"},
+            {"id": "harmony", "text": "L'harmonie avec les autres"},
+            {"id": "growth", "text": "L'évolution personnelle"},
+            {"id": "achievement", "text": "L'accomplissement de mes objectifs"}
         ]
     }
 }
@@ -99,94 +100,163 @@ async def generate_questions(responses: List[UserResponse]):
                 "question": GENERIC_QUESTIONS[r.question_id]["text"] if r.question_id <= 5 else "Question personnalisée",
                 "réponse": next(
                     (opt["text"] for opt in GENERIC_QUESTIONS[r.question_id]["options"] if opt["id"] == r.answer),
-                    "Autre réponse" if r.answer == "autre" else r.answer
+                    r.answer
                 ) if r.question_id <= 5 else r.answer
             }
             for r in responses
         ]
         
-        # Déterminer le cycle actuel
         cycle = (len(formatted_responses) // 5) + 1
+        print(f"🔄 Début de la génération des questions pour le cycle {cycle}/3")
+        print(f"📝 Réponses précédentes : {json.dumps(formatted_responses, indent=2, ensure_ascii=False)}")
         
-        prompt = f"""En tant que conseiller d'orientation expert, analyse ces réponses et génère 5 nouvelles questions générales et inclusives pour le cycle {cycle}/3.
+        prompt = f"""En tant qu'expert en orientation professionnelle, génère EXACTEMENT 5 questions pour le cycle {cycle}/3.
 
-Réponses précédentes du candidat :
-{json.dumps(formatted_responses, indent=2, ensure_ascii=False)}
+ATTENTION : Tu DOIS générer EXACTEMENT 5 questions, ni plus ni moins.
 
-Pour le cycle {cycle}, génère 5 questions qui explorent :
-
-Cycle {cycle} - Thèmes à explorer :
-{"- Les centres d'intérêt généraux\\n- Le style de vie souhaité\\n- Les valeurs personnelles\\n- Les préférences de travail\\n- Les sources d'énergie" if cycle == 1 else "- Les objectifs de vie\\n- Les talents naturels\\n- Les rêves professionnels\\n- Le type d'impact désiré\\n- L'environnement idéal" if cycle == 2 else "- Les aspirations profondes\\n- Les besoins essentiels\\n- Les motivations intrinsèques\\n- Les conditions de réussite\\n- Les priorités de vie"}
-
-Format JSON attendu :
+Format JSON STRICT à respecter :
 [
-    {{
-        "id": {6 + (cycle-1)*5},
-        "text": "Question générale et inclusive",
-        "options": [
-            {{"id": "option1", "text": "Première option générale"}},
-            {{"id": "option2", "text": "Deuxième option générale"}},
-            {{"id": "option3", "text": "Troisième option générale"}},
-            {{"id": "option4", "text": "Quatrième option générale"}}
-        ]
-    }},
-    // ... répéter pour les 4 autres questions
+  {{
+    "id": {6 + (cycle-1)*5},
+    "text": "Question courte et claire ?",
+    "options": [
+      {{"id": "option1", "text": "Réponse simple et concise"}},
+      {{"id": "option2", "text": "Autre réponse claire"}},
+      {{"id": "option3", "text": "Troisième option précise"}},
+      {{"id": "option4", "text": "Dernière option"}}
+    ]
+  }},
+  ... EXACTEMENT 4 questions supplémentaires avec le même format
 ]
 
-IMPORTANT : 
-- Les questions doivent être générales et s'appliquer à tout type de profil
-- Évite les questions trop spécifiques ou techniques
-- Propose des options larges et inclusives
-- Chaque option doit être simple et claire
-- Les questions doivent permettre de mieux comprendre la personne sans la mettre dans une case"""
+RÈGLES ABSOLUES :
+1. EXACTEMENT 5 questions, ni plus ni moins
+2. IDs EXACTS : {6 + (cycle-1)*5} à {10 + (cycle-1)*5}
+3. EXACTEMENT 4 options par question
+4. Format JSON strict sans décoration
+5. Pas de texte avant ou après le JSON
+6. Questions courtes et claires
+7. Options concises et précises
 
-        print(f"Génération des questions pour le cycle {cycle}")
+Thème pour le cycle {cycle}/3 :
+{{"1": "Passions (activités préférées, moments de flow, sources d'énergie)",
+"2": "Valeurs (fierté, confiance, environnement idéal, relations)",
+"3": "Vision (succès personnel, impact souhaité, vie épanouie, aspirations)"}}[str(cycle)]"""
 
-        completion = client.chat.completions.create(
-            model="gpt-4-0125-preview",
-            messages=[
-                {"role": "system", "content": f"Tu es un conseiller d'orientation expert qui génère des questions générales et inclusives. Adapte tes questions pour qu'elles conviennent à tout type de profil. Évite les questions trop spécifiques ou techniques."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
+        print("🤖 Envoi du prompt à Gemini...")
         
-        response_content = completion.choices[0].message.content
-        print("Réponse de GPT:", response_content)
-
-        # Nettoyage et validation comme avant...
-        response_content = response_content.strip()
-        if response_content.startswith("```json"):
-            response_content = response_content[7:]
-        if response_content.endswith("```"):
-            response_content = response_content[:-3]
-        response_content = response_content.strip()
-
-        questions = json.loads(response_content)
+        max_retries = 3
+        current_try = 0
         
-        # Validation
-        if not isinstance(questions, list) or len(questions) != 5:
-            raise ValueError("La réponse doit contenir exactement 5 questions")
+        while current_try < max_retries:
+            current_try += 1
+            print(f"🔄 Tentative {current_try}/{max_retries}")
             
-        for q in questions:
-            if not all(key in q for key in ["id", "text", "options"]):
-                raise ValueError("Format de question invalide")
-            if not isinstance(q["options"], list) or len(q["options"]) != 4:
-                raise ValueError("Chaque question doit avoir exactement 4 options")
-
-        return {"questions": questions}
+            try:
+                response = model.generate_content(prompt)
+                response_text = response.text.strip()
+                
+                print(f"📥 Réponse brute de Gemini :")
+                print(response_text)
+                
+                # Nettoyage du JSON
+                if response_text.startswith('```json'):
+                    response_text = response_text[7:]
+                if response_text.startswith('```'):
+                    response_text = response_text[3:]
+                if response_text.endswith('```'):
+                    response_text = response_text[:-3]
+                response_text = response_text.strip()
+                
+                # Suppression des caractères spéciaux et espaces superflus
+                response_text = response_text.replace('\n', ' ').replace('\r', ' ')
+                response_text = ' '.join(response_text.split())
+                
+                print(f"🧹 JSON nettoyé :")
+                print(response_text)
+                
+                # Premier essai de parsing
+                try:
+                    questions = json.loads(response_text)
+                except json.JSONDecodeError as e:
+                    print(f"⚠️ Erreur de parsing JSON : {str(e)}")
+                    # Tentative de correction
+                    response_text = response_text.replace('""', '"')
+                    response_text = response_text.replace(',,', ',')
+                    response_text = response_text.replace('[,', '[')
+                    response_text = response_text.replace(',]', ']')
+                    print("🔧 Tentative de correction du JSON :")
+                    print(response_text)
+                    questions = json.loads(response_text)
+                
+                # Vérification du nombre de questions
+                if not isinstance(questions, list):
+                    print("❌ Erreur : La réponse n'est pas un tableau")
+                    if current_try < max_retries:
+                        continue
+                    raise ValueError("Format de réponse invalide : tableau attendu")
+                
+                if len(questions) != 5:
+                    print(f"❌ Erreur : Nombre de questions incorrect ({len(questions)})")
+                    # Tentative de correction automatique
+                    if len(questions) < 5:
+                        print("🔧 Tentative d'ajout de questions manquantes")
+                        while len(questions) < 5:
+                            new_id = 6 + (cycle-1)*5 + len(questions)
+                            questions.append({
+                                "id": new_id,
+                                "text": f"Question supplémentaire {len(questions) + 1} ?",
+                                "options": [
+                                    {"id": "option1", "text": "Première option"},
+                                    {"id": "option2", "text": "Deuxième option"},
+                                    {"id": "option3", "text": "Troisième option"},
+                                    {"id": "option4", "text": "Quatrième option"}
+                                ]
+                            })
+                    elif len(questions) > 5:
+                        print("🔧 Suppression des questions en excès")
+                        questions = questions[:5]
+                
+                # Validation de chaque question
+                for i, q in enumerate(questions):
+                    expected_id = 6 + (cycle-1)*5 + i
+                    if q["id"] != expected_id:
+                        print(f"⚠️ Correction de l'ID : {q['id']} -> {expected_id}")
+                        q["id"] = expected_id
+                    
+                    if not isinstance(q.get("options"), list) or len(q["options"]) != 4:
+                        print(f"❌ Erreur : Options incorrectes pour la question {i+1}")
+                        if current_try < max_retries:
+                            continue
+                        raise ValueError(f"La question {i+1} doit avoir exactement 4 options")
+                
+                print("✅ Validation réussie !")
+                return {"questions": questions}
+                
+            except Exception as e:
+                print(f"❌ Erreur lors de la tentative {current_try} :", str(e))
+                if current_try == max_retries:
+                    raise
         
-    except json.JSONDecodeError as e:
-        print("Erreur de décodage JSON:", str(e))
-        print("Contenu reçu:", response_content)
-        raise HTTPException(status_code=500, detail="Erreur de format dans la réponse de l'IA")
+        raise Exception("Nombre maximum de tentatives atteint")
+        
     except Exception as e:
-        print("Erreur lors de la génération des questions:", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ Erreur finale :", str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la génération des questions : {str(e)}. Veuillez réessayer."
+        )
+
+# Fonction pour calculer la similarité entre deux chaînes
+def similar(a: str, b: str) -> float:
+    """Calcule la similarité entre deux chaînes en utilisant la distance de Levenshtein."""
+    from difflib import SequenceMatcher
+    return SequenceMatcher(None, a, b).ratio()
 
 @app.post("/recommend")
 async def get_recommendations(responses: List[UserResponse]):
     try:
+        print("🔄 Début de la génération des recommandations")
         formatted_responses = [
             {
                 "question": GENERIC_QUESTIONS[r.question_id]["text"] if r.question_id <= 5 else "Question personnalisée",
@@ -198,40 +268,90 @@ async def get_recommendations(responses: List[UserResponse]):
             for r in responses
         ]
         
-        prompt = f"""En tant que conseiller d'orientation professionnel, analyse ces réponses et recommande 3 métiers parfaitement adaptés au profil.
+        print(f"📝 Analyse des réponses : {json.dumps(formatted_responses, indent=2, ensure_ascii=False)}")
+        
+        prompt = f"""En tant qu'expert en orientation professionnelle, analyse ces réponses et propose des recommandations de carrière détaillées.
 
-Réponses du candidat :
+Voici les réponses du candidat :
 {json.dumps(formatted_responses, indent=2, ensure_ascii=False)}
 
-IMPORTANT :
-- Ne te base pas sur les diplômes ou l'expérience
-- Concentre-toi sur la personnalité, les talents naturels et les aspirations
-- Propose des métiers innovants et motivants
-- Explique pourquoi chaque métier correspond parfaitement
+IMPORTANT : Respecte STRICTEMENT ce format de réponse :
 
-Format de réponse :
-1. Analyse du profil (3-4 phrases percutantes sur les points forts)
+✨ ANALYSE DU PROFIL
+[Analyse détaillée des points forts, motivations et aspirations du candidat]
 
-2. Pour chaque métier :
-   🎯 [Nom du métier]
-   📝 Description inspirante
-   ✨ Pourquoi ce métier est fait pour toi
-   🔑 Compétences clés à développer
-   📚 Parcours possibles pour y arriver"""
+🎯 MÉTIERS RECOMMANDÉS
 
-        completion = client.chat.completions.create(
-            model="gpt-4-0125-preview",
-            messages=[
-                {"role": "system", "content": "Tu es un conseiller d'orientation visionnaire qui révèle le potentiel des gens et leur suggère des métiers passionnants. Sois inspirant et motivant dans tes recommandations."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
+1. [Nom du métier] (Match : XX%)
+Description : [Description détaillée du métier]
+
+Points de concordance :
+• [Point 1]
+• [Point 2]
+• [Point 3]
+
+Compétences à développer :
+• [Compétence 1]
+• [Compétence 2]
+• [Compétence 3]
+
+Parcours recommandé :
+• [Étape 1]
+• [Étape 2]
+• [Étape 3]
+
+[Répéter exactement le même format pour 2 autres métiers]
+
+RÈGLES IMPORTANTES :
+1. Inclure EXACTEMENT 3 métiers
+2. Chaque métier doit avoir un score de correspondance (Match : XX%)
+3. Respecter strictement les sections (Description, Points de concordance, etc.)
+4. Utiliser des puces (•) pour les listes
+5. Être concret et spécifique dans les recommandations"""
+
+        print("🤖 Envoi du prompt à Gemini...")
         
-        return {"recommendations": completion.choices[0].message.content}
+        max_retries = 3
+        current_try = 0
+        
+        while current_try < max_retries:
+            try:
+                current_try += 1
+                print(f"🔄 Tentative {current_try}/{max_retries}")
+                
+                response = model.generate_content(prompt)
+                recommendations = response.text.strip()
+                
+                # Vérification du format
+                if "✨ ANALYSE DU PROFIL" not in recommendations or "🎯 MÉTIERS RECOMMANDÉS" not in recommendations:
+                    print("❌ Format incorrect : sections manquantes")
+                    if current_try < max_retries:
+                        continue
+                    raise ValueError("Format de réponse incorrect")
+                
+                # Vérification des métiers
+                if recommendations.count("Match :") < 3:
+                    print("❌ Nombre incorrect de métiers recommandés")
+                    if current_try < max_retries:
+                        continue
+                    raise ValueError("Nombre incorrect de métiers recommandés")
+                
+                print("✅ Recommandations générées avec succès !")
+                return {"recommendations": recommendations}
+                
+            except Exception as e:
+                print(f"❌ Erreur lors de la tentative {current_try} :", str(e))
+                if current_try == max_retries:
+                    raise
+        
+        raise Exception("Nombre maximum de tentatives atteint")
+        
     except Exception as e:
-        print("Erreur lors de la génération des recommandations:", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ Erreur finale :", str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Une erreur est survenue lors de la génération des recommandations. Veuillez réessayer."
+        )
 
 if __name__ == "__main__":
     import uvicorn
