@@ -1,0 +1,69 @@
+{
+    "careers": [
+        {
+            "id": "ux_designer",
+            "title": "Designer UX",
+            "description": "Créer des expériences utilisateur intuitives et esthétiques",
+            "traits": {
+                "creativity": 0.9,
+                "problem_solving": 0.8,
+                "teamwork": 0.7,
+                "tech_skills": 0.8
+            },
+            "environment": ["office", "home"],
+            "work_style": ["team", "mix"]
+        },
+        {
+            "id": "project_manager",
+            "title": "Chef de projet digital",
+            "description": "Gérer des projets innovants dans le numérique",
+            "traits": {
+                "organization": 0.9,
+                "leadership": 0.8,
+                "communication": 0.9,
+                "problem_solving": 0.7
+            },
+            "environment": ["office", "home"],
+            "work_style": ["team"]
+        },
+        {
+            "id": "data_scientist",
+            "title": "Data Scientist",
+            "description": "Analyser des données pour en tirer des insights stratégiques",
+            "traits": {
+                "analysis": 0.9,
+                "problem_solving": 0.9,
+                "tech_skills": 0.8,
+                "creativity": 0.6
+            },
+            "environment": ["office", "home", "lab"],
+            "work_style": ["solo", "mix"]
+        },
+        {
+            "id": "innovation_consultant",
+            "title": "Consultant en innovation",
+            "description": "Accompagner les entreprises dans leur transformation",
+            "traits": {
+                "creativity": 0.8,
+                "communication": 0.9,
+                "analysis": 0.7,
+                "leadership": 0.7
+            },
+            "environment": ["office", "home"],
+            "work_style": ["mix", "team"]
+        },
+        {
+            "id": "software_engineer",
+            "title": "Ingénieur logiciel",
+            "description": "Développer des solutions logicielles innovantes",
+            "traits": {
+                "problem_solving": 0.9,
+                "tech_skills": 0.9,
+                "creativity": 0.7,
+                "analysis": 0.8
+            },
+            "environment": ["office", "home"],
+            "work_style": ["mix", "solo"]
+        }
+    ]
+} 

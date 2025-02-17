@@ -1,0 +1,179 @@
+🎯 Prompt détaillé pour Cursor - Chatbot d'Orientation Professionnelle Intelligent
+
+Objectif :
+Développer un chatbot interactif en deux phases qui utilise l'IA pour personnaliser l'expérience d'orientation professionnelle :
+1. Phase initiale avec 5 questions génériques pour établir un profil de base
+2. Phase personnalisée avec l'IA générant des questions et analyses adaptées
+
+🖥️ Technologies à utiliser :
+Frontend : React (Next.js) avec Tailwind CSS
+Backend : FastAPI (Python) avec intégration OpenAI GPT
+Base de données : MongoDB pour stocker les profils et interactions
+Déploiement : Vercel (frontend), Render/DigitalOcean (backend)
+
+🚀 Fonctionnalités à intégrer :
+
+1️⃣ Phase 1 - Questions Génériques de Base :
+Questions fondamentales pour établir le profil initial :
+1. "Quel est votre niveau d'études actuel ou visé ?"
+   - Lycée/Bac
+   - Bac+2/3
+   - Bac+5
+   - Autre/Reconversion
+   
+2. "Dans quel domaine avez-vous le plus d'intérêt ?"
+   - Sciences et Technologies
+   - Arts et Création
+   - Commerce et Gestion
+   - Social et Humain
+   
+3. "Comment préférez-vous travailler ?"
+   - En équipe
+   - En autonomie
+   - Mix des deux
+   - En contact avec le public
+   
+4. "Quelle est votre priorité professionnelle ?"
+   - Évolution de carrière
+   - Équilibre vie pro/perso
+   - Rémunération
+   - Impact social/environnemental
+   
+5. "Quel environnement de travail vous attire le plus ?"
+   - Bureau traditionnel
+   - Environnement créatif
+   - Terrain/Extérieur
+   - Télétravail
+
+2️⃣ Phase 2 - IA Personnalisée :
+
+Integration de l'IA pour :
+- Analyser les réponses initiales
+- Générer des questions personnalisées basées sur le profil
+- Adapter le ton et le style des questions selon les réponses
+- Fournir une analyse approfondie du profil
+- Recommander des métiers avec explications détaillées
+
+3️⃣ Système d'IA :
+
+Utilisation de GPT pour :
+- Générer 3-5 questions personnalisées basées sur les réponses précédentes
+- Analyser les réponses pour affiner le profil
+- Créer des recommandations de métiers détaillées et personnalisées
+- Fournir des explications sur l'adéquation entre le profil et les métiers suggérés
+
+4️⃣ Format des Interactions IA :
+
+Prompt Template pour l'IA :
+```
+Contexte précédent :
+- Réponses aux questions génériques : [réponses]
+- Profil initial détecté : [analyse]
+
+Instructions :
+1. Générer la prochaine question personnalisée
+2. Analyser la réponse
+3. Affiner le profil
+4. Décider si d'autres questions sont nécessaires
+5. Générer des recommandations finales
+```
+
+5️⃣ Stockage et Analyse :
+
+Base de données MongoDB pour :
+- Stocker les profils utilisateurs
+- Sauvegarder les interactions
+- Analyser les patterns de réponses
+- Améliorer les recommandations futures
+
+6️⃣ Interface Utilisateur :
+
+Design adaptatif avec :
+- Affichage progressif des questions
+- Visualisation du processus d'analyse
+- Animations subtiles pendant le traitement IA
+- Présentation claire des recommandations
+
+7️⃣ Recommandations Finales :
+
+Format de sortie :
+- 3-5 métiers recommandés
+- Explication personnalisée pour chaque métier
+- Adéquation avec le profil (pourcentage)
+- Parcours de formation suggéré
+- Compétences à développer
+
+8️⃣ Aspects Techniques :
+
+Backend :
+```python
+from fastapi import FastAPI
+from openai import OpenAI
+from pymongo import MongoClient
+
+# Configuration OpenAI
+client = OpenAI(api_key="your-api-key")
+
+# Intégration MongoDB
+mongo_client = MongoClient("mongodb://localhost:27017/")
+db = mongo_client["orientation_db"]
+```
+
+Frontend :
+```typescript
+interface Question {
+  id: string;
+  text: string;
+  type: "generic" | "ai_generated";
+  options?: string[];
+}
+
+interface Profile {
+  initialResponses: Map<string, string>;
+  aiGeneratedResponses: Map<string, string>;
+  analysis: string;
+  recommendations: CareerRecommendation[];
+}
+```
+
+9️⃣ Sécurité et Confidentialité :
+
+- Chiffrement des données utilisateur
+- Anonymisation des profils pour l'analyse
+- Conformité RGPD
+- Politique de confidentialité claire
+
+🔄 Processus d'Amélioration Continue :
+
+- Collecte de feedback utilisateur
+- Analyse des patterns de réponses
+- Affinage du modèle IA
+- Mise à jour régulière des métiers et compétences
+
+📊 Métriques de Suivi :
+
+- Taux de complétion
+- Satisfaction utilisateur
+- Précision des recommandations
+- Temps moyen par session
+
+🎯 Résultat Final Attendu :
+Un système d'orientation professionnelle intelligent qui combine :
+- Questions standardisées pour établir une base
+- IA pour personnaliser l'expérience
+- Recommandations détaillées et pertinentes
+- Interface utilisateur engageante et intuitive
+
+🔹 Exemple de Post LinkedIn pour le Lancer
+"Découvre ton métier idéal en quelques clics ! 🚀"
+Tu te demandes quel job est fait pour toi ?
+J'ai créé un chatbot interactif qui te propose 3 métiers adaptés en fonction de tes réponses ! 🎯
+Test-le ici ⬇️ [Lien du chatbot]
+👉 Partage ton résultat en commentaire ! 😊
+
+📢 Bonus
+Si tu veux un chatbot encore plus avancé, on peut :
+✔️ Ajouter un modèle NLP pour améliorer la logique
+✔️ Personnaliser les suggestions avec un score dynamique
+✔️ Créer un mode "exploration de carrière" avec plus de détails sur les métiers
+
